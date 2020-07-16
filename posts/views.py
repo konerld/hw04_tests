@@ -57,7 +57,7 @@ def profile(request, username):
             'page': page,
             'paginator': paginator,
             'author': author,
-            'post_num': posts.count()
+            'post_sum': posts.count()
         }
     )
 

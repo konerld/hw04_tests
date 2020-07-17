@@ -63,8 +63,17 @@ def profile(request, username):
 
 
 def post_view(request, username, post_id):
-    # тут тело функции
-    return render(request, 'post.html', {})
+    author = get_object_or_404(User, username=username)
+    # post = Post.objects.filter(pk=post_id)
+    post = get_object_or_404(Post, pk=post_id)
+    return render(
+        request,
+        'post.html',
+        {
+            'author': author,
+            'post': post
+        }
+    )
 
 
 def post_edit(request, username, post_id):

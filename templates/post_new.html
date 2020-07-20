@@ -8,11 +8,10 @@
         <div class="card">
             <div class="card-header">Редактировать запись</div>
             <div class="card-body">
-
-              {% for error in form.errors %}
-                  <div class="alert alert-danger" role="alert">
-                      {{ error|escape }}
-                  </div>
+                {% for error in form.errors %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error|escape }}
+                    </div>
                 {% endfor %}
 
                 <form method="POST" action="{% url 'new_post' %}">
@@ -33,9 +32,9 @@
                     {% endfor %}
 
                     <div class="col-md-6 offset-md-4">
-                            <button type="submit" class="btn btn-primary">
-                                Сохранить
-                            </button>
+                        <button type="submit" class="btn btn-primary">
+                            Сохранить
+                        </button>
                     </div>
                 </form>
             </div> <!-- card body -->

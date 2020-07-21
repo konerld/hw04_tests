@@ -64,7 +64,6 @@ def profile(request, username):
 
 def post_view(request, username, post_id):
     author = get_object_or_404(User, username=username)
-    # post = Post.objects.filter(pk=post_id)
     post = get_object_or_404(Post, pk=post_id)
     return render(
         request,
@@ -78,41 +77,18 @@ def post_view(request, username, post_id):
 
 @login_required
 def post_edit(request, username, post_id):
-    author = get_object_or_404(User, username=username)
-    post_obj = get_object_or_404(Post, pk=post_id, author=author)
-    if request.method == 'POST':
-        form = PostForm(request.POST, instance=post_obj)
-        if form.is_valid():
-            form.save()
-            return redirect('post', username=username, post_id=post_id)
-        return render(
-            request,
-            'post_new.html',
-            {
-                'form': form,
-                'post': post_obj
-            }
-        )
-    form = PostForm(instance=post_obj)
+    post = get_object_or_404(Post, id=post_id, author__username=username)
+    if request.user.username != username:
+        return redirect('post', username=username, post_id=post_id)
+    form = PostForm(request.POST or None, instance=post)
+    if form.is_valid():
+        form.save()
+        return redirect('post', username=username, post_id=post_id)
     return render(
         request,
         'post_new.html',
         {
             'form': form,
-            'post': post_obj
+            'post': post
         }
     )
-
-
-"""
-if request.method == 'POST':
-    form = PostForm(request.POST)
-    if form.is_valid():
-        post = form.save(commit=False)
-        post.author = request.user
-        post.save()
-        return redirect('index')
-    return render(request, 'new_post.html', {'form': form})
-form = PostForm()
-return render(request, 'new_post.html', {'form': form})
-"""

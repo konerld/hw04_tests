@@ -106,3 +106,11 @@ class PageTest(TestCase):
         response = self.client.post(f'/skywalker/{self.post.id}/edit/', {'text': new_text})
         response = self.client.get(f'/skywalker/{self.post.id}/edit/')
         self.assertIn(bytes(new_text, encoding='UTF-8'), response.content)
+
+    def test_404(self):
+        no_page = '/unknown/'
+        response = self.client.get(no_page)
+        self.assertEqual(response.status_code,
+                         404,
+                         f'Страница {no_page} существует '
+                         ' проверьте ошибку 404 на другой странице!')

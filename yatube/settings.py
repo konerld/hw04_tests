@@ -23,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'yzf#uli_f2#7a6cqr2naprcb1g-r$^s-t1_iozv&j&q2s$d_lg'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
         "localhost",
@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'django.contrib.sites',
     'django.contrib.flatpages',
+    'sorl.thumbnail',
 ]
 
 MIDDLEWARE = [
@@ -140,3 +141,10 @@ EMAIL_FILE_PATH = os.path.join(BASE_DIR, "sent_emails")
 
 # Идентификатор текущего сайта
 SITE_ID = 1
+
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

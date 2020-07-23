@@ -32,8 +32,8 @@ def group_posts(request, slug):
 
 @login_required
 def new_post(request):
+    form = PostForm(request.POST or None)
     if request.method == 'POST':
-        form = PostForm(request.POST or None)
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
@@ -63,11 +63,13 @@ def profile(request, username):
 
 def post_view(request, username, post_id):
     post = get_object_or_404(Post, author__username=username, id=post_id)
+    author = post.author
     return render(
         request,
         'includes/post.html',
         {
-            'post': post
+            'post': post,
+            'author': author
         }
     )
 

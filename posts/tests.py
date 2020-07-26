@@ -1,5 +1,6 @@
 from django.test import TestCase, Client
 from posts.models import Post, User
+from django.urls import reverse
 
 
 class PageTest(TestCase):
@@ -9,6 +10,8 @@ class PageTest(TestCase):
             username='skywalker',
             password='123456'
         )
+        self.client.force_login(self.user)
+
         self.post = Post.objects.create(
             text=f"Test post at blablabla",
             author=self.user
@@ -19,7 +22,12 @@ class PageTest(TestCase):
         Тест проверяет, что осле регистрации пользователя создается
         его персональная страница (profile)
         """
-        response = self.client.get("/skywalker/")
+        response = self.client.get(
+            reverse(
+                "profile",
+                kwargs={'username': self.user.username}
+            )
+        )
         self.assertEqual(response.status_code,
                          200,
                          "Страница '/skywalker/' не найдена!")
@@ -29,13 +37,27 @@ class PageTest(TestCase):
         Тест проверяет, что авторизованный
         пользователь может опубликовать пост (new)
         """
-        self.client.login(username='skywalker', password='123456')
-        self.client.post('/new/', {'text':'test'})
-        # self.assertEqual(response.status_code,
-        #                  200,
-        #                  'Авторизованный пользователь не может создать post')
-        # else:
-        #     self.assertTrue(False, 'Пользователь skywalker - не авторизован!')
+        response = self.client.post(
+            reverse("new_post"),
+            data={
+                'group': '',
+                'text': 'test'
+            },
+            follow=True
+        )
+        self.assertEqual(response.status_code,
+                         200,
+                         "Ошибка создания поста!")
+        created_post = Post.objects.all().first()
+        response = self.client.get(
+            reverse(
+                "post",
+                kwargs={
+                    'username': self.user.username,
+                    'post_id': created_post.id}
+            )
+        )
+        self.assertContains(response, 'test', status_code=200)
 
     def test_create_post_by_non_auth_user(self):
         """
@@ -43,7 +65,9 @@ class PageTest(TestCase):
         пользователь НЕ может опубликовать пост (new)
         """
         self.client.logout()
-        response = self.client.post('/new/')
+        response = self.client.get(
+            reverse("new_post")
+        )
         self.assertRedirects(response,
                              '/auth/login/?next=/new/',
                              msg_prefix="Не авторизованный пользователь"
@@ -55,7 +79,7 @@ class PageTest(TestCase):
         Тест проверяет, что после публикации поста новая запись появляется:
         - на главной странице сайта (index)
         """
-        response = self.client.get('/')
+        response = self.client.get(reverse('index'))
         self.assertIn(self.post,
                       response.context['page'],
                       'Пост НЕ отображается на домашней странице!')
@@ -68,7 +92,12 @@ class PageTest(TestCase):
         Тест проверяет, что после публикации поста новая запись появляется:
         - на персональной странице пользователя (profile)
         """
-        response = self.client.get(f'/skywalker/')
+        response = self.client.get(
+            reverse(
+                "profile",
+                kwargs={'username': self.user.username}
+            )
+        )
         self.assertIn(self.post,
                       response.context['page'],
                       "Пост НЕ отображается на странице пользователя!")
@@ -81,8 +110,14 @@ class PageTest(TestCase):
         Тест проверяет, что после публикации поста новая запись появляется:
         - на отдельной странице поста (post)
         """
-        response = self.client.get(f'/skywalker/{self.post.id}/')
-
+        response = self.client.get(
+            reverse(
+                "post",
+                kwargs={
+                    'username': self.post.author.username,
+                    'post_id': self.post.id}
+            )
+        )
         self.assertEqual(self.post,
                          response.context['post'],
                          "Пост не отображается на собственной странице!")
@@ -93,15 +128,40 @@ class PageTest(TestCase):
         свой пост и его содержимое изменится на всех связанных страницах
         """
         self.client.login(username='skywalker', password='123456')
-        response = self.client.get(f'/skywalker/{self.post.id}/edit/')
+        response = self.client.get(
+            reverse(
+                "post_edit",
+                kwargs={
+                    'username': self.post.author.username,
+                    'post_id': self.post.id
+                }
+            )
+        )
         self.assertEqual(response.status_code,
                          200,
                          'У пользователя нет доступа к '
                          'редактированию своего поста!')
         new_text = 'This is text after edit.'
-        response = self.client.post(f'/skywalker/{self.post.id}/edit/', {'text': new_text})
-        response = self.client.get(f'/skywalker/{self.post.id}/edit/')
-        self.assertIn(bytes(new_text, encoding='UTF-8'), response.content)
+        response = self.client.post(
+            reverse(
+                "post_edit",
+                kwargs={
+                    'username': self.post.author.username,
+                    'post_id': self.post.id
+                }
+            ),
+            data={'text': new_text}
+        )
+
+        response = self.client.get(
+            reverse(
+                "post",
+                kwargs={
+                    'username': self.post.author.username,
+                    'post_id': self.post.id}
+            )
+        )
+        self.assertContains(response, new_text, status_code=200)
 
     def test_404(self):
         no_page = '/unknown/'

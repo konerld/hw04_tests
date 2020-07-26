@@ -66,7 +66,7 @@ def post_view(request, username, post_id):
     author = post.author
     return render(
         request,
-        'includes/post.html',
+        'post.html',
         {
             'post': post,
             'author': author

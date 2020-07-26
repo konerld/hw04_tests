@@ -1,17 +1,20 @@
 from django.test import TestCase, Client
-from posts.models import Post, User
+from posts.models import Post, User, Group
 from django.urls import reverse
 
 
 class PageTest(TestCase):
     def setUp(self):
+        self.user = User.objects.create_user(username='skywalker')
         self.auth_client = Client()
-        self.user = User.objects.create_user(
-            username='skywalker',
-            password='123456'
-        )
         self.auth_client.force_login(self.user)
+
         self.non_auth_client = Client()
+        self.group = Group.objects.create(
+            title="test group",
+            slug='test-slug',
+            description='description',
+        )
 
         self.post = Post.objects.create(
             text=f"Test post at blablabla",
@@ -31,7 +34,7 @@ class PageTest(TestCase):
         )
         self.assertEqual(response.status_code,
                          200,
-                         "Страница '/skywalker/' не найдена!")
+                         "Страница пользователя не найдена!")
 
     def test_create_post_by_auth_user(self):
         """
@@ -74,6 +77,43 @@ class PageTest(TestCase):
                              msg_prefix="Не авторизованный пользователь"
                                         "не переадресовывается на страницу "
                                         "входа (login)!")
+
+    def test_post_exists_on_pages(self):
+
+        text = 'text in test post'
+        post = Post.objects.create(
+            text=text,
+            author=self.user,
+            group=self.group
+        )
+        urls_list = [
+            reverse('index'),
+            reverse(
+                'profile',
+                kwargs={
+                    'username': self.user.username
+                }
+            ),
+            reverse(
+                'post',
+                kwargs={
+                    'username': self.user.username,
+                    'post_id': post.id
+                }
+            )
+        ]
+        for url in urls_list:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            # check_post = response.context['page'][0]
+            if 'paginator' in response.context:
+                check_post = response.context['page'][0]
+            else:
+                check_post = response.context['post']
+
+            self.assertEqual(check_post.text, text)
+            self.assertEqual(check_post.group, self.group)
+            self.assertEqual(check_post.author, self.user)
 
     def test_post_exists_at_homepage(self):
         """

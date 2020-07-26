@@ -16,11 +16,6 @@ class PageTest(TestCase):
             description='description',
         )
 
-        self.post = Post.objects.create(
-            text=f"Test post at blablabla",
-            author=self.user
-        )
-
     def test_client_page(self):
         """
         Тест проверяет, что осле регистрации пользователя создается
@@ -68,8 +63,8 @@ class PageTest(TestCase):
         Тест проверяет, что НЕ авторизованный
         пользователь НЕ может опубликовать пост (new)
         """
-        self.auth_client.logout()
-        response = self.auth_client.get(
+        self.non_auth_client.logout()
+        response = self.non_auth_client.get(
             reverse("new_post")
         )
         self.assertRedirects(response,
@@ -79,15 +74,21 @@ class PageTest(TestCase):
                                         "входа (login)!")
 
     def test_post_exists_on_pages(self):
-
+        """
+        Тест создает пост и проверяет его отображение по всем страницам из
+        спискка urls_list
+        """
         text = 'text in test post'
         post = Post.objects.create(
             text=text,
             author=self.user,
             group=self.group
         )
+
         urls_list = [
-            reverse('index'),
+            reverse(
+                'index'
+            ),
             reverse(
                 'profile',
                 kwargs={
@@ -102,10 +103,10 @@ class PageTest(TestCase):
                 }
             )
         ]
+
         for url in urls_list:
-            response = self.client.get(url)
+            response = self.auth_client.get(url)
             self.assertEqual(response.status_code, 200)
-            # check_post = response.context['page'][0]
             if 'paginator' in response.context:
                 check_post = response.context['page'][0]
             else:
@@ -115,94 +116,59 @@ class PageTest(TestCase):
             self.assertEqual(check_post.group, self.group)
             self.assertEqual(check_post.author, self.user)
 
-    def test_post_exists_at_homepage(self):
-        """
-        Тест проверяет, что после публикации поста новая запись появляется:
-        - на главной странице сайта (index)
-        """
-        response = self.auth_client.get(reverse('index'))
-        self.assertIn(self.post,
-                      response.context['page'],
-                      'Пост НЕ отображается на домашней странице!')
-        self.assertEqual(self.post,
-                         response.context['page'][0],
-                         "Текст поста НЕ отображается на домашней странице!")
-
-    def test_post_exists_on_profile_page(self):
-        """
-        Тест проверяет, что после публикации поста новая запись появляется:
-        - на персональной странице пользователя (profile)
-        """
-        response = self.auth_client.get(
-            reverse(
-                "profile",
-                kwargs={'username': self.user.username}
-            )
-        )
-        self.assertIn(self.post,
-                      response.context['page'],
-                      "Пост НЕ отображается на странице пользователя!")
-        self.assertEqual(self.post,
-                         response.context['page'][0],
-                         "Текст поста НЕ отображается на странице пользователя!")
-
-    def test_post_exists_on_post_self_page(self):
-        """
-        Тест проверяет, что после публикации поста новая запись появляется:
-        - на отдельной странице поста (post)
-        """
-        response = self.auth_client.get(
-            reverse(
-                "post",
-                kwargs={
-                    'username': self.post.author.username,
-                    'post_id': self.post.id}
-            )
-        )
-        self.assertEqual(self.post,
-                         response.context['post'],
-                         "Пост не отображается на собственной странице!")
-
     def test_auth_user_can_edit_own_post(self):
         """
         Тест проверяет, что авторизованный пользователь может отредактировать
         свой пост и его содержимое изменится на всех связанных страницах
         """
-        self.auth_client.login(username='skywalker', password='123456')
-        response = self.auth_client.get(
+        post = Post.objects.create(
+            text='old text in post',
+            author=self.user,
+            group=self.group
+        )
+
+        edit_urls_list = [
             reverse(
-                "post_edit",
+                'index'
+            ),
+            reverse(
+                'profile',
                 kwargs={
-                    'username': self.post.author.username,
-                    'post_id': self.post.id
+                    'username': self.user.username
+                }
+            ),
+            reverse(
+                'post',
+                kwargs={
+                    'username': self.user.username,
+                    'post_id': post.id
                 }
             )
-        )
-        self.assertEqual(response.status_code,
-                         200,
-                         'У пользователя нет доступа к '
-                         'редактированию своего поста!')
+        ]
         new_text = 'This is text after edit.'
         response = self.auth_client.post(
             reverse(
-                "post_edit",
+                'post_edit',
                 kwargs={
-                    'username': self.post.author.username,
-                    'post_id': self.post.id
+                    'post_id': post.id,
+                    'username': post.author.username
                 }
             ),
-            data={'text': new_text}
+            data={
+                'group': self.group,
+                'text': new_text
+            }
         )
-
-        response = self.auth_client.get(
-            reverse(
-                "post",
-                kwargs={
-                    'username': self.post.author.username,
-                    'post_id': self.post.id}
-            )
-        )
-        self.assertContains(response, new_text, status_code=200)
+        self.assertEqual(response.status_code, 200)
+        for url in edit_urls_list:
+            response = self.auth_client.get(url)
+            if 'paginator' in response.context:
+                check_post = response.context['page'][0]
+            else:
+                check_post = response.context['post']
+            # Все вроде поправил, только тут уже голову сломал
+            # почему то здесь check_post не меняется текст поста
+            self.assertEqual(check_post.text, new_text)
 
     def test_404(self):
         no_page = '/unknown/'

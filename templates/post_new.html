@@ -19,7 +19,7 @@
 
                 {% if post is not None %}
 
-                    <form action="{% url 'post_edit' username=request.user.username post_id=post.id %}" method="post">
+                    <form action="{% url 'post_edit' username=request.user.username post_id=post.id %}" method="post" enctype="multipart/form-data">
                 {% else %}
                     <form action="{% url 'new_post' %}" method="post">
                 {% endif %}

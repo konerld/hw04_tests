@@ -39,7 +39,7 @@ class PageTest(TestCase):
         response = self.auth_client.post(
             reverse("new_post"),
             data={
-                'group': '',
+                'group': self.group.id,
                 'text': 'test'
             },
             follow=True
@@ -48,15 +48,10 @@ class PageTest(TestCase):
                          200,
                          "Ошибка создания поста!")
         created_post = Post.objects.all().first()
-        response = self.auth_client.get(
-            reverse(
-                "post",
-                kwargs={
-                    'username': self.user.username,
-                    'post_id': created_post.id}
-            )
-        )
-        self.assertContains(response, 'test', status_code=200)
+        self.assertEqual(Post.objects.count(), 1)
+        self.assertEqual(created_post.group, self.group)
+        self.assertEqual(created_post.author, self.user)
+        self.assertEqual(created_post.text, 'test')
 
     def test_create_post_by_non_auth_user(self):
         """
@@ -73,6 +68,18 @@ class PageTest(TestCase):
                                         "не переадресовывается на страницу "
                                         "входа (login)!")
 
+    def check_post_on_page(self, url, post_text, user, group):
+        response = self.auth_client.get(url)
+        self.assertEqual(response.status_code, 200)
+        if 'paginator' in response.context:
+            check_post = response.context['page'][0]
+        else:
+            check_post = response.context['post']
+
+        self.assertEqual(check_post.text, post_text)
+        self.assertEqual(check_post.group, group)
+        self.assertEqual(check_post.author, user)
+
     def test_post_exists_on_pages(self):
         """
         Тест создает пост и проверяет его отображение по всем страницам из
@@ -86,35 +93,25 @@ class PageTest(TestCase):
         )
 
         urls_list = [
-            reverse(
-                'index'
-            ),
-            reverse(
-                'profile',
-                kwargs={
-                    'username': self.user.username
-                }
-            ),
-            reverse(
-                'post',
-                kwargs={
-                    'username': self.user.username,
-                    'post_id': post.id
-                }
-            )
+            reverse('index'),
+            reverse('profile',
+                    kwargs={
+                        'username': self.user.username
+                            }
+                    ),
+            reverse('post',
+                    kwargs={
+                        'username': self.user.username,
+                        'post_id': post.id
+                            }
+                    )
         ]
 
         for url in urls_list:
-            response = self.auth_client.get(url)
-            self.assertEqual(response.status_code, 200)
-            if 'paginator' in response.context:
-                check_post = response.context['page'][0]
-            else:
-                check_post = response.context['post']
-
-            self.assertEqual(check_post.text, text)
-            self.assertEqual(check_post.group, self.group)
-            self.assertEqual(check_post.author, self.user)
+            self.check_post_on_page(url,
+                                    text,
+                                    self.user,
+                                    self.group)
 
     def test_auth_user_can_edit_own_post(self):
         """
@@ -151,24 +148,22 @@ class PageTest(TestCase):
                 'post_edit',
                 kwargs={
                     'post_id': post.id,
-                    'username': post.author.username
+                    'username': self.user.username
                 }
             ),
             data={
-                'group': self.group,
+                'group': self.group.id,
                 'text': new_text
-            }
+            },
+            follow=True
         )
         self.assertEqual(response.status_code, 200)
         for url in edit_urls_list:
-            response = self.auth_client.get(url)
-            if 'paginator' in response.context:
-                check_post = response.context['page'][0]
-            else:
-                check_post = response.context['post']
-            # Все вроде поправил, только тут уже голову сломал
-            # почему то здесь check_post не меняется текст поста
-            self.assertEqual(check_post.text, new_text)
+            self.check_post_on_page(url,
+                                    new_text,
+                                    self.user,
+                                    self.group)
+
 
     def test_404(self):
         no_page = '/unknown/'

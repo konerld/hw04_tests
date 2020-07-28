@@ -192,6 +192,10 @@ class PageTest(TestCase):
                     'username': self.user.username,
                     'post_id': post.id
                 }
+            ),
+            reverse(
+                'group',
+                kwargs={'slug': self.group.slug}
             )
         ]
         with open(self.image_path, 'rb') as img:
@@ -204,7 +208,8 @@ class PageTest(TestCase):
                 data={'group': self.group.id,
                       'text': 'post with image',
                       'image': img
-                      }
+                      },
+                follow=True
 
             )
             self.assertEqual(response.status_code,
@@ -216,4 +221,5 @@ class PageTest(TestCase):
             self.assertEqual(response.status_code,
                              200,
                              "Не найдена страница с картинкой!")
-            self.assertContains(response, '<img')
+            self.assertContains(response, '<img'
+                                )

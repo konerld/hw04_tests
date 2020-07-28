@@ -15,6 +15,7 @@ class PageTest(TestCase):
             slug='test-slug',
             description='description',
         )
+        self.image_path = './posts/test_data/monkey.png'
 
     def test_client_page(self):
         """
@@ -97,13 +98,13 @@ class PageTest(TestCase):
             reverse('profile',
                     kwargs={
                         'username': self.user.username
-                            }
+                    }
                     ),
             reverse('post',
                     kwargs={
                         'username': self.user.username,
                         'post_id': post.id
-                            }
+                    }
                     )
         ]
 
@@ -125,14 +126,10 @@ class PageTest(TestCase):
         )
 
         edit_urls_list = [
-            reverse(
-                'index'
-            ),
+            reverse('index'),
             reverse(
                 'profile',
-                kwargs={
-                    'username': self.user.username
-                }
+                kwargs={'username': self.user.username}
             ),
             reverse(
                 'post',
@@ -164,7 +161,6 @@ class PageTest(TestCase):
                                     self.user,
                                     self.group)
 
-
     def test_404(self):
         no_page = '/unknown/'
         response = self.auth_client.get(no_page)
@@ -172,3 +168,48 @@ class PageTest(TestCase):
                          404,
                          f'Страница {no_page} существует '
                          ' проверьте ошибку 404 на другой странице!')
+
+    def test_image(self):
+        post = Post.objects.create(
+            text='post with image',
+            author=self.user,
+            group=self.group
+        )
+        img_urls_list = [
+            reverse('index'),
+            reverse(
+                'profile',
+                kwargs={
+                    'username': self.user.username
+                }
+            ),
+            reverse(
+                'post',
+                kwargs={
+                    'username': self.user.username,
+                    'post_id': post.id
+                }
+            )
+        ]
+        with open(self.image_path, 'rb') as img:
+            response = self.auth_client.post(
+                reverse(
+                    'post_edit',
+                    kwargs={'post_id': post.id,
+                            'username': self.user.username},
+                ),
+                data={'group': self.group,
+                      'text': 'post with image',
+                      'image': img
+                      }
+            )
+            self.assertEqual(response.status_code,
+                             200,
+                             "Ошибка добавления картинки!")
+        for url in img_urls_list:
+            response = self.auth_client.get(url)
+            print(f'resp: {response}')
+            self.assertEqual(response.status_code,
+                             200,
+                             "Не найдена страница с картинкой!")
+            self.assertContains(response, '<img')

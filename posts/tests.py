@@ -16,6 +16,7 @@ class PageTest(TestCase):
             description='description',
         )
         self.image_path = './posts/test_data/monkey.png'
+        self.wrong_image_path = './posts/test_data/monkey.txt'
 
     def test_client_page(self):
         """
@@ -221,5 +222,11 @@ class PageTest(TestCase):
             self.assertEqual(response.status_code,
                              200,
                              "Не найдена страница с картинкой!")
-            self.assertContains(response, '<img'
-                                )
+            self.assertContains(response, '<img')
+
+    def test_wrong_image(self):
+        self.assertEquals(os.path.exists(self.wrong_image_path),
+                          True,
+                          "Не найден файл картинки для теста!")
+        types = ['jpg', 'jpeg', 'gif', 'png']
+        self.assertEqual(self.wrong_image_path.split('.')[-1] not in types, True)

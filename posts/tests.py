@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from posts.models import Post, User, Group
 from django.urls import reverse
-
+import os
 
 class PageTest(TestCase):
     def setUp(self):
@@ -149,7 +149,7 @@ class PageTest(TestCase):
                 }
             ),
             data={
-                'group': self.group.id,
+                'group': '',
                 'text': new_text
             },
             follow=True
@@ -170,6 +170,7 @@ class PageTest(TestCase):
                          ' проверьте ошибку 404 на другой странице!')
 
     def test_image(self):
+        assert os.path.exists(self.image_path) == True, "Не найден файл картинки для теста!"
         post = Post.objects.create(
             text='post with image',
             author=self.user,

@@ -149,7 +149,7 @@ class PageTest(TestCase):
                 }
             ),
             data={
-                'group': '',
+                'group': self.group.id,
                 'text': new_text
             },
             follow=True
@@ -170,7 +170,9 @@ class PageTest(TestCase):
                          ' проверьте ошибку 404 на другой странице!')
 
     def test_image(self):
-        assert os.path.exists(self.image_path) == True, "Не найден файл картинки для теста!"
+        self.assertEquals(os.path.exists(self.image_path),
+                          True,
+                          "Не найден файл картинки для теста!")
         post = Post.objects.create(
             text='post with image',
             author=self.user,
@@ -197,12 +199,13 @@ class PageTest(TestCase):
                 reverse(
                     'post_edit',
                     kwargs={'post_id': post.id,
-                            'username': self.user.username},
+                            'username': self.user.username}
                 ),
-                data={'group': self.group,
+                data={'group': self.group.id,
                       'text': 'post with image',
                       'image': img
                       }
+
             )
             self.assertEqual(response.status_code,
                              200,

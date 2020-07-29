@@ -3,6 +3,7 @@ from posts.models import Post, User, Group
 from django.urls import reverse
 import os
 
+
 class PageTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='skywalker')

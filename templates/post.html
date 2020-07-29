@@ -28,9 +28,9 @@
                     </ul>
                 </div>
             </div>
-
-            {% include "includes/post_card.html" with author=author post=post %}
-
         </div>
+        {% include "includes/post_card.html" with author=author post=post %}
+        {% include "includes/add_post_comment_form.html" with form=form %}
+        {% include "includes/comments.html" with items=items post=post form=form %}
     </main>
 {% endblock %}

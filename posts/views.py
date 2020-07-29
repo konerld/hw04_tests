@@ -1,8 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
-from .models import Post, Group, User
-from . forms import PostForm
 from django.contrib.auth.decorators import login_required
+from .models import Post, Group, User, Comment
+from . forms import PostForm, CommentForm
 
 
 def index(request):
@@ -64,14 +64,33 @@ def profile(request, username):
 def post_view(request, username, post_id):
     post = get_object_or_404(Post, author__username=username, id=post_id)
     author = post.author
+    comments = post.comments.all()  # Comment.objects.filter(post=post)
+    # form = CommentForm(instance=None)
+    form = CommentForm(request.POST or None,
+                       instance=None
+                       )
     return render(
         request,
         'post.html',
         {
             'post': post,
-            'author': author
+            'author': author,
+            'items': comments,
+            'form': form
         }
     )
+
+"""
+def post_view(request, username, post_id):
+    post = get_object_or_404(Post, pk=post_id, author__username=username)
+    author = get_object_or_404(User, username=username)
+    post_list = author.posts_author.all()
+    post_count = post_list.count()
+    form = CommentPost(instance=None)
+    items = post.comments_post.all()
+    return render(request, 'post.html', {'post': post, 'author': post.author, 
+    'pcount': post_count, 'items': items, 'form': form})
+"""
 
 
 @login_required
@@ -107,3 +126,29 @@ def page_not_found(request, exception):
 
 def server_error(request):
     return render(request, "misc/500.html", status=500)
+
+
+@login_required
+def add_comment(request, username, post_id):
+    post = get_object_or_404(Post, author__username=username, id=post_id)
+    comments = Comment.objects.filter(post=post)
+    if request.user != post.author:
+        return redirect('post', username=username, post_id=post_id)
+    form = CommentForm(request.POST or None,
+                       instance=None
+                    )
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.post = post
+        comment.author = request.user
+        comment.save()
+        return redirect('post', username=username, post_id=post_id)
+    return render(
+        request,
+        'includes/comments.html',
+        {
+            'form': form,
+            'post': post,
+            'items': comments
+        }
+    )
